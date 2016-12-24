@@ -32,6 +32,9 @@ class Input:
         textsize = draw.textsize(self.subtitle, self.parent.font)
         draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(255, 255, 255), font=self.parent.font)
 
+        # Convert to to grayscale
+        img = img.convert("LA")
+
         ## Turn the image into a movie segment
         with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".png") as fimg:
             with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4") as ffadein:
