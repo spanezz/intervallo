@@ -1,0 +1,100 @@
+#!/usr/bin/python3
+
+# Given image files on input, generates a video in the style of Intervallo RAI.
+# For audio, you can use https://archive.org/details/IntervalloRai-Paradisi
+
+import argparse
+import os
+import PIL
+import PIL.ImageFont, PIL.ImageDraw
+import subprocess
+import tempfile
+import shlex
+
+class Input:
+    def __init__(self, parent, pathname):
+        self.parent = parent
+        self.pathname = pathname
+        self.subtitle = os.path.splitext(os.path.basename(self.pathname))[0]
+        self.video_file = tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4")
+        self.video_pathname = os.path.basename(self.video_file.name)
+
+    def to_video(self):
+        if os.path.getsize(self.video_pathname) > 0: return
+
+        img = PIL.Image.open(self.pathname)
+
+        # Scale the image to our frame size
+        img.thumbnail((self.parent.frame_x, self.parent.frame_y), PIL.Image.ANTIALIAS)
+
+        # Draw the subtitle on the image
+        draw = PIL.ImageDraw.Draw(img)
+        textsize = draw.textsize(self.subtitle, self.parent.font)
+        draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(255, 255, 255), font=self.parent.font)
+
+        ## Turn the image into a movie segment
+        with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".png") as fimg:
+            with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4") as ffadein:
+                img.save(fimg.name)
+                cmd = ["ffmpeg", "-loop", "1", "-i", fimg.name, "-c:v", "libx264",
+                        "-framerate", "25",
+                        "-t", str(self.parent.duration), "-pix_fmt", "yuv420p",
+                        "-vf", "fade=in:0:25",
+                        "-y", ffadein.name]
+                subprocess.check_call(cmd)
+
+                cmd = ["ffmpeg", "-i", ffadein.name,
+                        "-vf", "fade=out:{}:25".format(self.parent.duration * 25 - 25),
+                        "-y", self.video_pathname]
+                subprocess.check_call(cmd)
+
+class Intervallo:
+    def __init__(self, font, audio, duration):
+        self.font = PIL.ImageFont.truetype(font, 32)
+        self.audio_pathname = audio
+        self.frame_x = 704
+        self.frame_y = 576
+        self.duration = duration
+        self.files = []
+
+    def get_subtitle(self, pathname):
+        return os.path.splitext(os.path.basename(pathname))[0]
+
+    def process(self, files):
+        with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4") as mute:
+            with tempfile.NamedTemporaryFile(mode="wt", dir=".", suffix=".txt") as flist:
+                for pathname in files:
+                    f = Input(self, pathname)
+                    f.to_video()
+                    self.files.append(f)
+                    quoted = shlex.quote(f.video_pathname)
+                    if quoted[0] != "'":
+                        quoted = "'{}'".format(quoted)
+                    print("file {}".format(quoted), file=flist)
+
+                flist.flush()
+
+                subprocess.check_call(["cat", flist.name])
+
+                cmd = ["ffmpeg", "-y", "-f", "concat", "-i", flist.name, "-c", "copy", mute.name]
+                subprocess.check_call(cmd)
+
+            cmd = ["ffmpeg", "-y", "-i", mute.name, "-i", self.audio_pathname, "-codec", "copy", "-shortest", "intervallo.mp4"]
+            subprocess.check_call(cmd)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Create an Intervallo RAI out of a collection of images.")
+    parser.add_argument("--font", metavar="file.ttf", default="DejaVuSerif.ttf", help="Font to use for subtitles")
+    parser.add_argument("--audio", metavar="file.mp3", help="Audio track")
+    parser.add_argument("--duration", metavar="sec", type=int, default=5, help="Time for each image in seconds")
+    parser.add_argument("imgfile", nargs="+", help="input image files")
+    args = parser.parse_args()
+
+    proc = Intervallo(font=args.font, audio=args.audio, duration=args.duration)
+    proc.process(args.imgfile)
+
+
+if __name__ == "__main__":
+    main()
+
