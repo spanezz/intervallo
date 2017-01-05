@@ -25,8 +25,11 @@ class Input:
         draw = PIL.ImageDraw.Draw(txtimg)
         textsize = draw.textsize(self.subtitle, self.parent.font)
         draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
+
+        # Draw it again a bit offset, then blur, to simulate text being slightly out of focus
         draw.text(((self.parent.frame_x - textsize[0])/2 + 2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
         txtimg = txtimg.filter(PIL.ImageFilter.GaussianBlur(radius=1))
+
         return txtimg
 
     def to_frame(self):
@@ -128,7 +131,7 @@ class Intervallo:
 
 def main():
     parser = argparse.ArgumentParser(description="Create an Intervallo RAI out of a collection of images.")
-    parser.add_argument("--font", metavar="file.ttf", default="DejaVuSerif.ttf", help="Font to use for subtitles")
+    parser.add_argument("--font", metavar="file.ttf", default="LibreBodoni-Bold.otf", help="Font to use for subtitles")
     parser.add_argument("--audio", metavar="file.mp3", help="Audio track")
     parser.add_argument("--duration", metavar="sec", type=int, default=5, help="Time for each image in seconds")
     parser.add_argument("-o", "--output", metavar="pathname", default="intervallo.mp4", help="Output file name")
