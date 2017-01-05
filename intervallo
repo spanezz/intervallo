@@ -19,9 +19,7 @@ class Input:
         self.video_file = tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4")
         self.video_pathname = os.path.basename(self.video_file.name)
 
-    def to_video(self):
-        if os.path.getsize(self.video_pathname) > 0: return
-
+    def to_frame(self):
         src = PIL.Image.open(self.pathname)
 
         # Scale the image to our frame size
@@ -36,20 +34,31 @@ class Input:
         src = PIL.Image.composite(src, black, vignette)
 
         # Image with black background
-        img = PIL.Image.new("RGB", (self.parent.frame_x, self.parent.frame_y), "black")
+        img = PIL.Image.new("RGBA", (self.parent.frame_x, self.parent.frame_y), "black")
 
         # Center the source image over the black background
         img.paste(src, (((self.parent.frame_x - src.size[0]) // 2), ((self.parent.frame_y - src.size[1]) // 2)))
 
         # Draw the subtitle on the image
-        draw = PIL.ImageDraw.Draw(img)
+        txtimg = PIL.Image.new("RGBA", (self.parent.frame_x, self.parent.frame_y), (0, 0, 0, 0))
+        draw = PIL.ImageDraw.Draw(txtimg)
         textsize = draw.textsize(self.subtitle, self.parent.font)
-        draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(255, 255, 255), font=self.parent.font)
+        draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
+        txtimg = txtimg.filter(PIL.ImageFilter.GaussianBlur(radius=1))
+        img = PIL.Image.alpha_composite(img, txtimg)
 
         # Convert to to grayscale
         #img = img.convert("LA")
+        # Desaturate
         desaturate = PIL.ImageEnhance.Color(img)
         img = desaturate.enhance(0.5)
+
+        return img
+
+    def to_video(self):
+        if os.path.getsize(self.video_pathname) > 0: return
+
+        img = self.to_frame()
 
         ## Turn the image into a movie segment
         with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".png") as fimg:
@@ -69,7 +78,7 @@ class Input:
 
 class Intervallo:
     def __init__(self, font, audio, duration, output):
-        self.font = PIL.ImageFont.truetype(font, 32)
+        self.font = PIL.ImageFont.truetype(font, 40)
         self.audio_pathname = audio
         self.output_pathname = output
         self.frame_x = 704
