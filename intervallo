@@ -58,9 +58,10 @@ class Input:
                 subprocess.check_call(cmd)
 
 class Intervallo:
-    def __init__(self, font, audio, duration):
+    def __init__(self, font, audio, duration, output):
         self.font = PIL.ImageFont.truetype(font, 32)
         self.audio_pathname = audio
+        self.output_pathname = output
         self.frame_x = 704
         self.frame_y = 576
         self.duration = duration
@@ -70,7 +71,8 @@ class Intervallo:
         return os.path.splitext(os.path.basename(pathname))[0]
 
     def process(self, files):
-        with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4") as mute:
+        has_audio = bool(self.audio_pathname)
+        with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4", delete=has_audio) as mute:
             with tempfile.NamedTemporaryFile(mode="wt", dir=".", suffix=".txt") as flist:
                 for pathname in files:
                     f = Input(self, pathname)
@@ -88,8 +90,11 @@ class Intervallo:
                 cmd = ["ffmpeg", "-y", "-f", "concat", "-i", flist.name, "-c", "copy", mute.name]
                 subprocess.check_call(cmd)
 
-            cmd = ["ffmpeg", "-y", "-i", mute.name, "-i", self.audio_pathname, "-codec", "copy", "-shortest", "intervallo.mp4"]
-            subprocess.check_call(cmd)
+            if has_audio:
+                cmd = ["ffmpeg", "-y", "-i", mute.name, "-i", self.audio_pathname, "-codec", "copy", "-shortest", self.output_pathname]
+                subprocess.check_call(cmd)
+            else:
+                os.rename(mute.name, self.output_pathname)
 
 
 def main():
@@ -97,10 +102,11 @@ def main():
     parser.add_argument("--font", metavar="file.ttf", default="DejaVuSerif.ttf", help="Font to use for subtitles")
     parser.add_argument("--audio", metavar="file.mp3", help="Audio track")
     parser.add_argument("--duration", metavar="sec", type=int, default=5, help="Time for each image in seconds")
+    parser.add_argument("-o", "--output", metavar="pathname", default="intervallo.mp4", help="Output file name")
     parser.add_argument("imgfile", nargs="+", help="input image files")
     args = parser.parse_args()
 
-    proc = Intervallo(font=args.font, audio=args.audio, duration=args.duration)
+    proc = Intervallo(font=args.font, audio=args.audio, duration=args.duration, output=args.output)
     proc.process(args.imgfile)
 
 
