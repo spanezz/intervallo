@@ -61,11 +61,13 @@ class Input:
         # Draw the subtitle on the image
         img = PIL.Image.alpha_composite(img, self.text_frame())
 
-        # Convert to to grayscale
-        #img = img.convert("LA")
-        # Desaturate
-        desaturate = PIL.ImageEnhance.Color(img)
-        img = desaturate.enhance(0.5)
+        if self.parent.bw:
+            # Convert to to grayscale
+            img = img.convert("LA")
+        else:
+            # Desaturate
+            desaturate = PIL.ImageEnhance.Color(img)
+            img = desaturate.enhance(0.5)
 
         if False:
             img.show()
@@ -95,14 +97,16 @@ class Input:
                         "-y", self.video_pathname]
                 subprocess.check_call(cmd)
 
+
 class Intervallo:
-    def __init__(self, font, audio, duration, output):
+    def __init__(self, font, audio, duration, output, bw):
         self.font = PIL.ImageFont.truetype(font, 40)
         self.audio_pathname = audio
         self.output_pathname = output
         self.frame_x = 704
         self.frame_y = 576
         self.duration = duration
+        self.bw = bw
         self.files = []
 
     def get_subtitle(self, pathname):
@@ -140,12 +144,13 @@ def main():
     parser.add_argument("--font", metavar="file.ttf", default="LibreBodoni-Bold.otf", help="Font to use for subtitles")
     parser.add_argument("--audio", metavar="file.mp3", help="Audio track")
     parser.add_argument("--duration", metavar="sec", type=int, default=5, help="Time for each image in seconds")
+    parser.add_argument("--bw", action="store_true", help="Black and white instead of desaturated colours")
     parser.add_argument("-o", "--output", metavar="pathname", default="intervallo.mp4", help="Output file name")
     parser.add_argument("imgfile", nargs="+", help="input image files")
     args = parser.parse_args()
 
-    proc = Intervallo(font=args.font, audio=args.audio, duration=args.duration, output=args.output)
-    proc.process(args.imgfile)
+    proc = Intervallo(font=args.font, audio=args.audio, duration=args.duration, output=args.output, bw=args.bw)
+    proc.process([x for x in args.imgfile if not x.endswith(".txt")])
 
 
 if __name__ == "__main__":
