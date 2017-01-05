@@ -43,3 +43,7 @@ For an '80s style intervallo like [this](https://www.youtube.com/watch?v=_ACoU8f
 ```
 ./intervallo --audio Paradisi-Toccata.mp3 *.jpg
 ```
+
+Other fonts to try:
+
+ * [Latin Modern Roman demi](https://www.fontsquirrel.com/fonts/Latin-Modern-Roman)
