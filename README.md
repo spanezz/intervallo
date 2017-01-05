@@ -32,6 +32,9 @@ For example:
 The images are captioned with their file name, without extension. You may want
 to rename the image files to have nice descriptive names.
 
+Alternatively, you can create a `foo.jpg.txt` file for a `foo.jpg` image, so
+you can have multiline captions.
+
 For some audio to use, you can try <https://archive.org/details/IntervalloRai-Paradisi>
 
 ## Examples
