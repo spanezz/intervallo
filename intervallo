@@ -141,7 +141,7 @@ class Intervallo:
 
 def main():
     parser = argparse.ArgumentParser(description="Create an Intervallo RAI out of a collection of images.")
-    parser.add_argument("--font", metavar="file.ttf", default="LibreBodoni-Bold.otf", help="Font to use for subtitles")
+    parser.add_argument("--font", metavar="file.ttf", default="lmromandemi10-regular.otf", help="Font to use for subtitles")
     parser.add_argument("--audio", metavar="file.mp3", help="Audio track")
     parser.add_argument("--duration", metavar="sec", type=int, default=5, help="Time for each image in seconds")
     parser.add_argument("--bw", action="store_true", help="Black and white instead of desaturated colours")
