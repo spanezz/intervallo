@@ -38,3 +38,8 @@ For some audio to use, you can try <https://archive.org/details/IntervalloRai-Pa
 
 Original versions:
 <https://www.youtube.com/playlist?list=PLY8ZnKIqYfqb8VZaeLHSDhNLziwjeT0-H>
+
+For an '80s style intervallo like [this](https://www.youtube.com/watch?v=_ACoU8fRyEw&list=PLY8ZnKIqYfqb8VZaeLHSDhNLziwjeT0-H&index=2):
+```
+./intervallo --audio Paradisi-Toccata.mp3 *.jpg
+```
