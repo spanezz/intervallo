@@ -33,7 +33,7 @@ class Input:
             y -= size[1] + 10
             draw.text(((self.parent.frame_x - size[0]) / 2, y), line, fill=(200, 200, 200), font=self.parent.font)
             # Draw it again a bit offset, then blur, to simulate text being slightly out of focus
-            draw.text(((self.parent.frame_x - size[0]) / 2 + 2, y), line, fill=(200, 200, 200), font=self.parent.font)
+            draw.text(((self.parent.frame_x - size[0]) / 2 + 1, y + 1), line, fill=(200, 200, 200), font=self.parent.font)
         txtimg = txtimg.filter(PIL.ImageFilter.GaussianBlur(radius=1))
 
         return txtimg
