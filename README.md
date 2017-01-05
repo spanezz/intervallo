@@ -34,6 +34,7 @@ to rename the image files to have nice descriptive names.
 
 For some audio to use, you can try <https://archive.org/details/IntervalloRai-Paradisi>
 
-## Example
+## Examples
 
-https://www.youtube.com/watch?v=ZCERwjTB4ck
+Original versions:
+<https://www.youtube.com/playlist?list=PLY8ZnKIqYfqb8VZaeLHSDhNLziwjeT0-H>

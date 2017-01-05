@@ -6,7 +6,7 @@
 import argparse
 import os
 import PIL
-import PIL.ImageFont, PIL.ImageDraw, PIL.ImageFilter
+import PIL.ImageFont, PIL.ImageDraw, PIL.ImageFilter, PIL.ImageEnhance
 import subprocess
 import tempfile
 import shlex
@@ -47,7 +47,9 @@ class Input:
         draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(255, 255, 255), font=self.parent.font)
 
         # Convert to to grayscale
-        img = img.convert("LA")
+        #img = img.convert("LA")
+        desaturate = PIL.ImageEnhance.Color(img)
+        img = desaturate.enhance(0.5)
 
         ## Turn the image into a movie segment
         with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".png") as fimg:
