@@ -15,7 +15,11 @@ class Input:
     def __init__(self, parent, pathname):
         self.parent = parent
         self.pathname = pathname
-        self.subtitle = os.path.splitext(os.path.basename(self.pathname))[0]
+        if os.path.exists(self.pathname + ".txt"):
+            with open(self.pathname + ".txt", "rt") as fd:
+                self.subtitle = [x.strip() for x in fd.readlines()]
+        else:
+            self.subtitle = [os.path.splitext(os.path.basename(self.pathname))[0]]
         self.video_file = tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4")
         self.video_pathname = os.path.basename(self.video_file.name)
 
@@ -23,11 +27,13 @@ class Input:
         # Draw the subtitle on the image
         txtimg = PIL.Image.new("RGBA", (self.parent.frame_x, self.parent.frame_y), (0, 0, 0, 0))
         draw = PIL.ImageDraw.Draw(txtimg)
-        textsize = draw.textsize(self.subtitle, self.parent.font)
-        draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
-
-        # Draw it again a bit offset, then blur, to simulate text being slightly out of focus
-        draw.text(((self.parent.frame_x - textsize[0])/2 + 2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
+        subtitles = [(line, draw.textsize(line, self.parent.font)) for line in self.subtitle]
+        y = self.parent.frame_y - 50
+        for line, size in subtitles[::-1]:
+            y -= size[1] + 10
+            draw.text(((self.parent.frame_x - size[0]) / 2, y), line, fill=(200, 200, 200), font=self.parent.font)
+            # Draw it again a bit offset, then blur, to simulate text being slightly out of focus
+            draw.text(((self.parent.frame_x - size[0]) / 2 + 2, y), line, fill=(200, 200, 200), font=self.parent.font)
         txtimg = txtimg.filter(PIL.ImageFilter.GaussianBlur(radius=1))
 
         return txtimg
@@ -61,7 +67,7 @@ class Input:
         desaturate = PIL.ImageEnhance.Color(img)
         img = desaturate.enhance(0.5)
 
-        if False:
+        if True:
             img.show()
             import sys
             sys.exit(1)
