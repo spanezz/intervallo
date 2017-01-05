@@ -67,7 +67,7 @@ class Input:
         desaturate = PIL.ImageEnhance.Color(img)
         img = desaturate.enhance(0.5)
 
-        if True:
+        if False:
             img.show()
             import sys
             sys.exit(1)
