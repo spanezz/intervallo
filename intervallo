@@ -19,6 +19,16 @@ class Input:
         self.video_file = tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4")
         self.video_pathname = os.path.basename(self.video_file.name)
 
+    def text_frame(self):
+        # Draw the subtitle on the image
+        txtimg = PIL.Image.new("RGBA", (self.parent.frame_x, self.parent.frame_y), (0, 0, 0, 0))
+        draw = PIL.ImageDraw.Draw(txtimg)
+        textsize = draw.textsize(self.subtitle, self.parent.font)
+        draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
+        draw.text(((self.parent.frame_x - textsize[0])/2 + 2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
+        txtimg = txtimg.filter(PIL.ImageFilter.GaussianBlur(radius=1))
+        return txtimg
+
     def to_frame(self):
         src = PIL.Image.open(self.pathname)
 
@@ -40,18 +50,18 @@ class Input:
         img.paste(src, (((self.parent.frame_x - src.size[0]) // 2), ((self.parent.frame_y - src.size[1]) // 2)))
 
         # Draw the subtitle on the image
-        txtimg = PIL.Image.new("RGBA", (self.parent.frame_x, self.parent.frame_y), (0, 0, 0, 0))
-        draw = PIL.ImageDraw.Draw(txtimg)
-        textsize = draw.textsize(self.subtitle, self.parent.font)
-        draw.text(((self.parent.frame_x - textsize[0])/2, self.parent.frame_y - textsize[1] - 100), self.subtitle, fill=(200, 200, 200), font=self.parent.font)
-        txtimg = txtimg.filter(PIL.ImageFilter.GaussianBlur(radius=1))
-        img = PIL.Image.alpha_composite(img, txtimg)
+        img = PIL.Image.alpha_composite(img, self.text_frame())
 
         # Convert to to grayscale
         #img = img.convert("LA")
         # Desaturate
         desaturate = PIL.ImageEnhance.Color(img)
         img = desaturate.enhance(0.5)
+
+        if False:
+            img.show()
+            import sys
+            sys.exit(1)
 
         return img
 
