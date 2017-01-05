@@ -6,7 +6,7 @@
 import argparse
 import os
 import PIL
-import PIL.ImageFont, PIL.ImageDraw
+import PIL.ImageFont, PIL.ImageDraw, PIL.ImageFilter
 import subprocess
 import tempfile
 import shlex
@@ -26,6 +26,14 @@ class Input:
 
         # Scale the image to our frame size
         src.thumbnail((self.parent.frame_x, self.parent.frame_y), PIL.Image.ANTIALIAS)
+
+        # Add vignette effect
+        vignette = PIL.Image.new("L", src.size, "black")
+        vignette_draw = PIL.ImageDraw.Draw(vignette)
+        vignette_draw.ellipse(((0, 0), vignette.size), fill="white")
+        vignette = vignette.filter(PIL.ImageFilter.GaussianBlur(radius=100))
+        black = PIL.Image.new("RGB", vignette.size, "black")
+        src = PIL.Image.composite(src, black, vignette)
 
         # Image with black background
         img = PIL.Image.new("RGB", (self.parent.frame_x, self.parent.frame_y), "black")
