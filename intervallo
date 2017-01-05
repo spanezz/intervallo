@@ -22,10 +22,16 @@ class Input:
     def to_video(self):
         if os.path.getsize(self.video_pathname) > 0: return
 
-        img = PIL.Image.open(self.pathname)
+        src = PIL.Image.open(self.pathname)
 
         # Scale the image to our frame size
-        img.thumbnail((self.parent.frame_x, self.parent.frame_y), PIL.Image.ANTIALIAS)
+        src.thumbnail((self.parent.frame_x, self.parent.frame_y), PIL.Image.ANTIALIAS)
+
+        # Image with black background
+        img = PIL.Image.new("RGB", (self.parent.frame_x, self.parent.frame_y), "black")
+
+        # Center the source image over the black background
+        img.paste(src, (((self.parent.frame_x - src.size[0]) // 2), ((self.parent.frame_y - src.size[1]) // 2)))
 
         # Draw the subtitle on the image
         draw = PIL.ImageDraw.Draw(img)
