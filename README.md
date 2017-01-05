@@ -49,4 +49,4 @@ For an '80s style intervallo like [this](https://www.youtube.com/watch?v=_ACoU8f
 
 Other fonts to try:
 
- * [Latin Modern Roman demi](https://www.fontsquirrel.com/fonts/Latin-Modern-Roman)
+ * [Latin Modern Roman demi](https://www.fontsquirrel.com/fonts/Latin-Modern-Roman) (`apt install fonts-lmodern` in Debian, then use `/usr/share/texmf/fonts/opentype/public/lm/lmromandemi10-regular.otf`)
