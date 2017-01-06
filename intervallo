@@ -20,7 +20,7 @@ class Frame:
             with open(self.src_pathname + ".txt", "rt") as fd:
                 self.subtitle = [x.strip() for x in fd.readlines()]
         else:
-            self.subtitle = [os.path.splitext(os.path.basename(self.pathname))[0]]
+            self.subtitle = [os.path.splitext(os.path.basename(self.src_pathname))[0]]
 
         self.frame_img = None
         self.frame_pathname = None
