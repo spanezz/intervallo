@@ -11,57 +11,68 @@ import subprocess
 import tempfile
 import shlex
 
-class Input:
-    def __init__(self, parent, pathname):
-        self.parent = parent
-        self.pathname = pathname
-        if os.path.exists(self.pathname + ".txt"):
-            with open(self.pathname + ".txt", "rt") as fd:
+class Frame:
+    def __init__(self, size, src_pathname):
+        self.size = size
+        self.src_pathname = src_pathname
+
+        if os.path.exists(self.src_pathname + ".txt"):
+            with open(self.src_pathname + ".txt", "rt") as fd:
                 self.subtitle = [x.strip() for x in fd.readlines()]
         else:
             self.subtitle = [os.path.splitext(os.path.basename(self.pathname))[0]]
-        self.video_file = tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4")
-        self.video_pathname = os.path.basename(self.video_file.name)
 
-    def text_frame(self):
+        self.frame_img = None
+        self.frame_pathname = None
+
+    def __del__(self):
+        if self.frame_pathname is not None:
+            os.unlink(self.frame_pathname)
+
+    def text_frame(self, font):
         # Draw the subtitle on the image
-        txtimg = PIL.Image.new("RGBA", (self.parent.frame_x, self.parent.frame_y), (0, 0, 0, 0))
+        txtimg = PIL.Image.new("RGBA", self.size, (0, 0, 0, 0))
         draw = PIL.ImageDraw.Draw(txtimg)
-        subtitles = [(line, draw.textsize(line, self.parent.font)) for line in self.subtitle]
-        y = self.parent.frame_y - 50
+        subtitles = [(line, draw.textsize(line, font)) for line in self.subtitle]
+        y = self.size[1] - 50
         for line, size in subtitles[::-1]:
             y -= size[1] + 10
-            draw.text(((self.parent.frame_x - size[0]) / 2, y), line, fill=(200, 200, 200), font=self.parent.font)
+            draw.text(((self.size[0] - size[0]) / 2, y), line, fill=(200, 200, 200), font=font)
             # Draw it again a bit offset, then blur, to simulate text being slightly out of focus
-            draw.text(((self.parent.frame_x - size[0]) / 2 + 1, y + 1), line, fill=(200, 200, 200), font=self.parent.font)
+            draw.text(((self.size[0] - size[0]) / 2 + 1, y + 1), line, fill=(200, 200, 200), font=font)
         txtimg = txtimg.filter(PIL.ImageFilter.GaussianBlur(radius=1))
-
         return txtimg
 
-    def to_frame(self):
-        src = PIL.Image.open(self.pathname)
-
-        # Scale the image to our frame size
-        src.thumbnail((self.parent.frame_x, self.parent.frame_y), PIL.Image.ANTIALIAS)
-
-        # Add vignette effect
-        vignette = PIL.Image.new("L", src.size, "black")
+    def vignette_effect(self, img):
+        """
+        Return a copy of img with a vignetting effect applied to it
+        """
+        vignette = PIL.Image.new("L", img.size, "black")
         vignette_draw = PIL.ImageDraw.Draw(vignette)
         vignette_draw.ellipse(((0, 0), vignette.size), fill="white")
         vignette = vignette.filter(PIL.ImageFilter.GaussianBlur(radius=100))
         black = PIL.Image.new("RGB", vignette.size, "black")
-        src = PIL.Image.composite(src, black, vignette)
+        return PIL.Image.composite(img, black, vignette)
+
+    def to_frame(self, font, bw=False):
+        src = PIL.Image.open(self.src_pathname)
+
+        # Scale the image to our frame size
+        src.thumbnail(self.size, PIL.Image.ANTIALIAS)
+
+        # Add vignette effect
+        src = self.vignette_effect(src)
 
         # Image with black background
-        img = PIL.Image.new("RGBA", (self.parent.frame_x, self.parent.frame_y), "black")
+        img = PIL.Image.new("RGBA", self.size, "black")
 
         # Center the source image over the black background
-        img.paste(src, (((self.parent.frame_x - src.size[0]) // 2), ((self.parent.frame_y - src.size[1]) // 2)))
+        img.paste(src, (((self.size[0] - src.size[0]) // 2), ((self.size[1] - src.size[1]) // 2)))
 
         # Draw the subtitle on the image
-        img = PIL.Image.alpha_composite(img, self.text_frame())
+        img = PIL.Image.alpha_composite(img, self.text_frame(font))
 
-        if self.parent.bw:
+        if bw:
             # Convert to to grayscale
             img = img.convert("LA")
         else:
@@ -76,26 +87,12 @@ class Input:
 
         return img
 
-    def to_video(self):
-        if os.path.getsize(self.video_pathname) > 0: return
-
-        img = self.to_frame()
-
-        ## Turn the image into a movie segment
-        with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".png") as fimg:
-            with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4") as ffadein:
-                img.save(fimg.name)
-                cmd = ["ffmpeg", "-loop", "1", "-i", fimg.name, "-c:v", "libx264",
-                        "-framerate", "25",
-                        "-t", str(self.parent.duration), "-pix_fmt", "yuv420p",
-                        "-vf", "fade=in:0:25",
-                        "-y", ffadein.name]
-                subprocess.check_call(cmd)
-
-                cmd = ["ffmpeg", "-i", ffadein.name,
-                        "-vf", "fade=out:{}:25".format(self.parent.duration * 25 - 25),
-                        "-y", self.video_pathname]
-                subprocess.check_call(cmd)
+    def write_frame(self, font, bw=False):
+        self.frame_img = self.to_frame(font, bw)
+        with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".png", delete=False) as f:
+            self.frame_img.save(f.name)
+            self.frame_pathname = os.path.basename(f.name)
+        return self.frame_pathname
 
 
 class Intervallo:
@@ -105,6 +102,7 @@ class Intervallo:
         self.output_pathname = output
         self.frame_x = 704
         self.frame_y = 576
+        self.frame_size = (self.frame_x, self.frame_y)
         self.duration = duration
         self.bw = bw
         self.files = []
@@ -114,29 +112,37 @@ class Intervallo:
 
     def process(self, files):
         has_audio = bool(self.audio_pathname)
-        with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4", delete=has_audio) as mute:
-            with tempfile.NamedTemporaryFile(mode="wt", dir=".", suffix=".txt") as flist:
-                for pathname in files:
-                    f = Input(self, pathname)
-                    f.to_video()
-                    self.files.append(f)
-                    quoted = shlex.quote(f.video_pathname)
-                    if quoted[0] != "'":
-                        quoted = "'{}'".format(quoted)
-                    print("file {}".format(quoted), file=flist)
 
-                flist.flush()
+        frames = [Frame(self.frame_size, f) for f in files]
+        for f in frames:
+            f.write_frame(self.font, self.bw)
 
-                subprocess.check_call(["cat", flist.name])
+        # See http://superuser.com/questions/833232/create-video-with-5-images-with-fadein-out-effect-in-ffmpeg
+        cmd = ["ffmpeg", "-y"]
+        for idx, f in enumerate(frames):
+            cmd += ["-loop", "1", "-t", str(self.duration), "-i", f.frame_pathname]
+        with tempfile.NamedTemporaryFile(mode="wt", dir=".", suffix=".txt") as script:
+            # Build the transitions
+            concat = []
+            for idx in range(len(frames) - 1):
+                print("[{next}:v][{prev}:v]blend=all_expr='A*(if(gte(T,0.5),1,T/0.5))+B*(1-(if(gte(T,0.5),1,T/0.5)))'[t{prev}];".format(prev=idx, next=idx+1), file=script)
+                concat.append("[{prev}:v][t{prev}]".format(prev=idx))
+            concat.append("[{}:v]".format(len(frames) - 1))
+            concat.append("concat=n={count}:v=1:a=0,format=yuv420p[v]".format(count=len(frames) * 2 - 1))
+            print("".join(concat), file=script)
+            cmd += ["-filter_complex_script", os.path.basename(script.name)]
 
-                cmd = ["ffmpeg", "-y", "-f", "concat", "-i", flist.name, "-c", "copy", mute.name]
+            script.flush()
+
+            with tempfile.NamedTemporaryFile(mode="wb", dir=".", suffix=".mp4", delete=has_audio) as mute:
+                cmd += ["-map", "[v]", mute.name]
                 subprocess.check_call(cmd)
 
-            if has_audio:
-                cmd = ["ffmpeg", "-y", "-i", mute.name, "-i", self.audio_pathname, "-codec", "copy", "-shortest", self.output_pathname]
-                subprocess.check_call(cmd)
-            else:
-                os.rename(mute.name, self.output_pathname)
+                if has_audio:
+                    cmd = ["ffmpeg", "-y", "-i", mute.name, "-i", self.audio_pathname, "-codec", "copy", "-shortest", self.output_pathname]
+                    subprocess.check_call(cmd)
+                else:
+                    os.rename(mute.name, self.output_pathname)
 
 
 def main():
