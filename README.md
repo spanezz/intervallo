@@ -35,7 +35,11 @@ to rename the image files to have nice descriptive names.
 Alternatively, you can create a `foo.jpg.txt` file for a `foo.jpg` image, so
 you can have multiline captions.
 
-For some audio to use, you can try <https://archive.org/details/IntervalloRai-Paradisi>
+See [here](https://www.jamendo.com/track/708643/p-d-paradisi-toccata) for a
+suitable audio.
+[archive.org](https://archive.org/details/IntervalloRai-Paradisi) has a track
+that is very close to the original, but I did not see information about its
+license.
 
 ## Examples
 
@@ -44,7 +48,7 @@ Original versions:
 
 For an '80s style intervallo like [this](https://www.youtube.com/watch?v=_ACoU8fRyEw&list=PLY8ZnKIqYfqb8VZaeLHSDhNLziwjeT0-H&index=2):
 ```
-./intervallo --audio Paradisi-Toccata.mp3 *.jpg
+./intervallo --audio Emilio_Antonucci_-_P.D._PARADISI__TOCCATA.mp3 *.jpg
 ```
 
 Other fonts to try:
